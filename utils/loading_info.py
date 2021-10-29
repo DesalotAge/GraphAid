@@ -1,7 +1,9 @@
 import requests
 import threading
 import time
+import pandas as pd
 import sys
+from typing import Optional
 from utils import models
 
 HOST = 'https://www.tks.ru/'
@@ -99,7 +101,7 @@ def get_stations_info(url_list: list[str]) -> list[models.Station]:
                 elif 'Адрес таможни' in incide:
                     customhouse = get_info(incide)
 
-        info = models.Station(name=name, id=id, railway=railway, customhouse=customhouse)
+        info = models.Station(name=name, id=id, railway=railway, customhouse=customhouse, x_coord=None, y_coord=None)
         print(url, name, id, railway, customhouse, sep=';')
 
         thread_counter -= 1
@@ -113,10 +115,88 @@ def get_stations_info(url_list: list[str]) -> list[models.Station]:
         t.start()
         while thread_counter > 10:
             pass
-    # print('ended')
-    time.sleep(10)
-    # while len(url_set):
-    #     pass
 
+    time.sleep(10)
 
     return ans
+
+
+def add_coords2stations(stations_list: pd.DataFrame) -> list[models.Station]:
+
+    completed_threads = 0
+    current_threads = 0
+    ans = []
+
+    def decode_address2coords(address: str) -> str:
+        nonlocal  current_threads
+
+        data = requests.get(f'https://geocode-maps.yandex.ru/1.x/'
+                            f'?apikey={os.environ.get("api-key")}'
+                            f'&format=json&geocode={address}')
+        retrieve = 70
+        while retrieve > 0 and data.status_code != 200:
+            data = requests.get(f'https://geocode-maps.yandex.ru/1.x/'
+                                f'?apikey={os.environ.get("api-key")}'
+                                f'&format=json&geocode={address}')
+            retrieve -= 1
+        if len(data.json()['response']['GeoObjectCollection']['featureMember']) == 0:
+            return None
+        return tuple(
+            map(
+                float,
+                data.json()['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos'].split()[::-1]
+            )
+        )
+
+    def fill_coords(station: models.Station) -> Optional[models.Station]:
+        nonlocal current_threads, completed_threads, ans
+
+        if isinstance(station.customhouse, str):
+            coords = decode_address2coords(station.customhouse.title())
+        else:
+            current_threads -= 1
+            completed_threads += 1
+            return None
+
+        if coords is None:
+            current_threads -= 1
+            completed_threads += 1
+            return None
+        # print(coords)
+        station_copy = models.Station(
+            id=station.id,
+            name=station.name,
+            customhouse=station.customhouse,
+            railway=station.railway,
+            x_coord=coords[0],
+            y_coord=coords[1],
+        )
+        ans.append(station_copy)
+        current_threads -= 1
+        completed_threads += 1
+        return station_copy
+
+    for station_id_in_list in range(len(stations_list)):
+
+        t = threading.Thread(target=fill_coords, args=(
+                models.Station(
+                    id=stations_list.at[station_id_in_list, 'id'],
+                    railway=stations_list.at[station_id_in_list, 'railway'],
+                    customhouse=stations_list.at[station_id_in_list, 'customhouse'],
+                    name=stations_list.at[station_id_in_list, 'name'],
+                    x_coord=None,
+                    y_coord=None
+                ),
+            )
+        )
+        t.start()
+        current_threads += 1
+
+        while current_threads > 10:
+            pass
+
+    while current_threads != 0:
+        pass
+    return ans
+
+

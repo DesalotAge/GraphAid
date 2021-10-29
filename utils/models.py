@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 
 class Station(NamedTuple):
@@ -6,3 +6,5 @@ class Station(NamedTuple):
     railway: str
     customhouse: str
     name: str
+    x_coord: Optional[float]
+    y_coord: Optional[float]
