@@ -129,6 +129,7 @@ def add_coords2stations(stations_list: pd.DataFrame) -> list[models.Station]:
 
     def decode_address2coords(address: str) -> str:
         nonlocal  current_threads
+        # print(address)
 
         data = requests.get(f'https://geocode-maps.yandex.ru/1.x/'
                             f'?apikey={os.environ.get("api-key")}'
@@ -152,7 +153,7 @@ def add_coords2stations(stations_list: pd.DataFrame) -> list[models.Station]:
         nonlocal current_threads, completed_threads, ans
 
         if isinstance(station.customhouse, str):
-            coords = decode_address2coords(station.customhouse.title())
+            coords = decode_address2coords("Железнодорожная станци " + station.name.title())
         else:
             current_threads -= 1
             completed_threads += 1
@@ -177,7 +178,7 @@ def add_coords2stations(stations_list: pd.DataFrame) -> list[models.Station]:
         return station_copy
 
     for station_id_in_list in range(len(stations_list)):
-
+    # for  station_id_in_list in range(100):
         t = threading.Thread(target=fill_coords, args=(
                 models.Station(
                     id=stations_list.at[station_id_in_list, 'id'],

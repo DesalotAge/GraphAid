@@ -42,13 +42,13 @@ def create_connections_for_one_railway(stations: list[Station]) -> list[tuple[in
         distanses.sort()
         if len(distanses) > 0:
             connections.append((stations[first_station].id, stations[distanses[0][1]].id))
-        if len(distanses) > 1:
-            dist_first_second = (stations[distanses[0][1]].x_coord - stations[distanses[1][1]].x_coord) ** 2 + \
-                                (stations[distanses[0][1]].y_coord - stations[distanses[1][1]].y_coord) ** 2
-            dist_main_second = (stations[first_station].x_coord - stations[distanses[1][1]].x_coord) ** 2 + \
-                               (stations[first_station].y_coord - stations[distanses[1][1]].x_coord) ** 2
-            if dist_main_second < dist_first_second:
-                connections.append((stations[first_station].id, stations[distanses[1][1]].id))
+        # if len(distanses) > 1:
+        #     dist_first_second = (stations[distanses[0][1]].x_coord - stations[distanses[1][1]].x_coord) ** 2 + \
+        #                         (stations[distanses[0][1]].y_coord - stations[distanses[1][1]].y_coord) ** 2
+        #     dist_main_second = (stations[first_station].x_coord - stations[distanses[1][1]].x_coord) ** 2 + \
+        #                        (stations[first_station].y_coord - stations[distanses[1][1]].x_coord) ** 2
+        #     if dist_main_second < dist_first_second:
+        #         connections.append((stations[first_station].id, stations[distanses[1][1]].id))
     return connections
 
 
@@ -71,7 +71,8 @@ def draw_graph(all_stations: pd.DataFrame, edges: list[tuple[int]]) -> None:
         G,
         poses,
         width=0.5,
-        labels=nx.get_node_attributes(G, 'station_name'),
-        font_size=10
+        node_size=10,
+        # labels=nx.get_node_attributes(G, 'station_name'),
+        # font_size=8
     )
     plt.show()
